@@ -4,6 +4,20 @@ const ctx = canvas.getContext("2d");
 const W = canvas.width;
 const H = canvas.height;
 
+// Load fruit images
+const fruitImgs = [
+  'https://cdn-icons-png.flaticon.com/512/415/415682.png', // Apple
+  'https://cdn-icons-png.flaticon.com/512/415/415733.png', // Banana
+  'https://cdn-icons-png.flaticon.com/512/415/415734.png', // Orange
+  'https://cdn-icons-png.flaticon.com/512/415/415735.png', // Grapes
+  'https://cdn-icons-png.flaticon.com/512/415/415736.png'  // Watermelon
+].map(src=>{
+  let img = new Image();
+  img.src = src;
+  return img;
+});
+
+
 const basket = { x: W/2-40, y: H-50, w: 80, h: 40, speed: 250 };
 let fruits = [];
 let score = 0;
@@ -111,16 +125,17 @@ function update(dt) {
 function draw() {
   ctx.clearRect(0,0,W,H);
 
+  // Draw basket
   ctx.fillStyle = "brown";
   ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
 
+  // Draw fruits
   fruits.forEach(f=>{
-    ctx.fillStyle = f.bonus ? "gold" : "red";
-    ctx.beginPath();
-    ctx.arc(f.x+f.size/2, f.y+f.size/2, f.size/2, 0, Math.PI*2);
-    ctx.fill();
+    let img = fruitImgs[f.type % fruitImgs.length];
+    ctx.drawImage(img, f.x, f.y, f.size, f.size);
   });
 }
+
 
 // ================= Controls =================
 let leftPressed = false, rightPressed = false;
