@@ -85,17 +85,44 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-// controls
-document.addEventListener('keydown', e=>{
-  if(e.key==='ArrowLeft') basket.x -= basket.speed*2;
-  if(e.key==='ArrowRight') basket.x += basket.speed*2;
-  basket.x = Math.max(0, Math.min(W-basket.w, basket.x));
+// --- Keyboard controls ---
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') basket.x -= basket.speed * 2;
+  if (e.key === 'ArrowRight') basket.x += basket.speed * 2;
+  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
 });
-// touch buttons
-document.getElementById('leftBtn').addEventListener('touchstart', ()=>{ basket.x -= 40; });
-document.getElementById('rightBtn').addEventListener('touchstart', ()=>{ basket.x += 40; });
-document.getElementById('leftBtn').addEventListener('click', ()=>{ basket.x -= 40; });
-document.getElementById('rightBtn').addEventListener('click', ()=>{ basket.x += 40; });
+
+// --- Touch swipe controls ---
+let touchX = null;
+
+document.addEventListener('touchstart', e => {
+  touchX = e.touches[0].clientX;
+});
+
+document.addEventListener('touchmove', e => {
+  let currentX = e.touches[0].clientX;
+  let dx = currentX - touchX;
+
+  basket.x += dx * 0.5; // adjust sensitivity here
+  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
+
+  touchX = currentX;
+});
+
+document.addEventListener('touchend', () => {
+  touchX = null;
+});
+
+// --- Optional: Touch buttons (only if leftBtn & rightBtn exist in HTML) ---
+let leftBtn = document.getElementById('leftBtn');
+let rightBtn = document.getElementById('rightBtn');
+
+if (leftBtn && rightBtn) {
+  leftBtn.addEventListener('touchstart', () => { basket.x -= 40; });
+  rightBtn.addEventListener('touchstart', () => { basket.x += 40; });
+  leftBtn.addEventListener('click', () => { basket.x -= 40; });
+  rightBtn.addEventListener('click', () => { basket.x += 40; });
+}
 
 // restart
 document.getElementById('restart').addEventListener('click', ()=>{ gameOverEl.classList.add('hidden'); start(); });
