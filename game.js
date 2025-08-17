@@ -1,135 +1,42 @@
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
-const scoreEl = document.getElementById('score'), livesEl = document.getElementById('lives');
-const timerEl = document.getElementById('timer');
-const bgm = document.getElementById('bgm'), catchSfx = document.getElementById('catchSfx'), missSfx = document.getElementById('missSfx');
-const gameOverEl = document.getElementById('gameOver'), finalScore = document.getElementById('finalScore');
-let score=0, lives=5, running=false, fruits=[], lastSpawn=0, spawnInterval=900, startTime=0, gameDuration=60;
-let basket = {x: W/2-60, y: H-140, w:140, h:80, speed:50};
+// ================= Game Constants =================
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
 
-const fruitImgs = {};
-['egg','apple','banana','orange'].forEach(n=>{ const i=new Image(); i.src='assets/img/'+n+'.png'; fruitImgs[n]=i; });
+const basket = { x: W/2-40, y: H-50, w: 80, h: 40, speed: 250 }; // pixels/sec
+let fruits = [];
+let score = 0;
+let lives = 5;
+let running = false;
 
-function start(){ score=0; lives=5; fruits=[]; lastSpawn=0; spawnInterval=900; startTime = Date.now(); running=true; document.getElementById('score').textContent=0; livesEl.textContent=5; timerEl.textContent=gameDuration;
-  bgm.currentTime=0; bgm.play().catch(()=>{});
-  requestAnimationFrame(loop);
+let lastSpawn = 0;
+let spawnInterval = 900; // ms
+let startTime = 0;
+let gameDuration = 60; // seconds
+
+const scoreEl = document.getElementById("score");
+const livesEl = document.getElementById("lives");
+const timerEl = document.getElementById("timer");
+
+const FRAME_RATE_SCALE = 60; // normalize speeds
+
+// ================= Fruit Spawning =================
+function spawnFruit() {
+  const size = 30;
+  const x = Math.random() * (W - size);
+  const speed = 100 + Math.random()*100; // px/sec
+  const bonus = Math.random() < 0.1;
+  fruits.push({x, y: -size, size, speed, bonus});
 }
 
-function end(){ running=false; bgm.pause(); finalScore.textContent = score; gameOverEl.classList.remove('hidden'); }
-
-function spawnFruit(){
-  const kinds = ['egg','apple','banana','orange'];
-  // weighted: egg most common, apple/banana/orange rarer -> bonus fruits give +2
-  const weights = [0.6,0.15,0.15,0.1];
-  let r=Math.random(), sum=0, idx=0;
-  for(let i=0;i<weights.length;i++){ sum+=weights[i]; if(r<=sum){ idx=i; break; } }
-  const kind = kinds[idx];
-  const img = fruitImgs[kind];
-  const x = Math.random() * (W-80) + 40;
-  const speed = 2 + Math.random()*2 + ( (Date.now()-startTime)/60000 )*3; // increases over time
-  fruits.push({x, y:-40, kind, img, speed, w:img.width, h:img.height});
-}
-
-function update(dt){
-  // spawn
-  if(Date.now() - lastSpawn > spawnInterval){
-    spawnFruit(); lastSpawn = Date.now();
-    // slowly speed up spawn
-    if(spawnInterval>350) spawnInterval -= 10;
-  }
-  // move fruits
-  for(let i=fruits.length-1;i>=0;i--){
-    const f = fruits[i];
-    f.y += f.speed;
-    // catch collision
-    if(f.y + f.h/2 >= basket.y && f.x >= basket.x - 10 && f.x <= basket.x + basket.w + 10){
-      // caught
-      let points = (f.kind==='egg')?1:2;
-      score += points; scoreEl.textContent = score; catchSfx.play().catch(()=>{});
-      fruits.splice(i,1);
-      continue;
-    }
-    // missed
-    if(f.y > H + 40){
-      fruits.splice(i,1); lives--; livesEl.textContent = lives; missSfx.play().catch(()=>{});
-      if(lives <= 0) end();
-    }
-  }
-  // timer
-  const elapsed = Math.floor((Date.now()-startTime)/1000);
-  const remain = Math.max(0, gameDuration - elapsed);
-  timerEl.textContent = remain;
-  if(remain<=0) end();
-}
-
-function draw(){
-  ctx.clearRect(0,0,W,H);
-  // draw basket
-  const bimg = new Image(); bimg.src='assets/img/basket.png';
-  ctx.drawImage(bimg, basket.x, basket.y, basket.w, basket.h);
-  // draw fruits
-  for(const f of fruits){
-    ctx.drawImage(f.img, f.x - f.w/2, f.y - f.h/2, f.w, f.h);
-  }
-  // draw simple basket outline for guidance (optional)
-  ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth=2; ctx.strokeRect(basket.x, basket.y, basket.w, basket.h);
-}
-
+// ================= Game Loop =================
 let last = performance.now();
-function loop(now){
-  if(!running) return;
-  const dt = now - last; last = now;
-  update(dt); draw();
-  requestAnimationFrame(loop);
-}
 
-// ----- SMOOTH CONTROLS & FRAME-RATE-INDEPENDENT MOVEMENT -----
-// Put this after you define `const basket = { ... , speed: X }`
-
-// Keep backward compatibility: if you already set basket.speed as 'units'
-// (like 8 or 12), we'll interpret that same way but scale by a FRAME_RATE value.
-const FRAME_RATE_SCALE = 60; // kept so old basket.speed numbers still make sense
-
-// keyboard hold flags
-let leftPressed = false;
-let rightPressed = false;
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') leftPressed = true;
-  if (e.key === 'ArrowRight') rightPressed = true;
-});
-document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft') leftPressed = false;
-  if (e.key === 'ArrowRight') rightPressed = false;
-});
-
-// Optional: convert existing one-off button/touch handlers to continuous presses
-// (only if you have leftBtn/rightBtn elements)
-const leftBtn = document.getElementById('leftBtn');
-const rightBtn = document.getElementById('rightBtn');
-if (leftBtn && rightBtn) {
-  // start moving while pressed, stop when released
-  leftBtn.addEventListener('pointerdown', () => { leftPressed = true; });
-  leftBtn.addEventListener('pointerup',   () => { leftPressed = false; });
-  leftBtn.addEventListener('pointerleave',() => { leftPressed = false; });
-
-  rightBtn.addEventListener('pointerdown', () => { rightPressed = true; });
-  rightBtn.addEventListener('pointerup',   () => { rightPressed = false; });
-  rightBtn.addEventListener('pointerleave',() => { rightPressed = false; });
-}
-
-// If you have touch-drag handling, keep it but avoid it forcing immediate jumps.
-// (If you want drag-to-position behavior instead, see the comment below.)
-
-// ----- Loop & update (use dt seconds) -----
-// Replace your loop with one that passes `dt` in seconds to update()
-// Also ensure `last` is set when starting the game to avoid large dt on first frame.
-let last = performance.now();
 function loop(now) {
   if (!running) return;
-  const dt = (now - last) / 1000; // dt in seconds
+  const dt = (now - last) / 1000; // seconds
   last = now;
 
   update(dt);
@@ -138,78 +45,115 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-// In your start() function, reset `last` right before starting the loop:
 function start() {
-  // ... your existing start logic ...
-  last = performance.now();          // <- important
+  score = 0; lives = 5; fruits = []; lastSpawn = 0; spawnInterval = 900;
+  startTime = Date.now(); running = true;
+  scoreEl.textContent = 0; livesEl.textContent = 5; timerEl.textContent = gameDuration;
+
+  last = performance.now(); // reset time
   requestAnimationFrame(loop);
 }
 
-// update() now receives dt (seconds). Modify movement here:
-function update(dt) {
-  // Smooth keyboard movement (basket.speed is the same number as before)
-  // movement-per-frame equivalent = basket.speed * FRAME_RATE_SCALE
-  const movePerSecond = basket.speed * FRAME_RATE_SCALE; // pixels/sec
-  if (leftPressed)  basket.x -= movePerSecond * dt;
-  if (rightPressed) basket.x += movePerSecond * dt;
-
-  // clamp
-  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
-
-  // --- Update fruits to be frame-rate-independent too ---
-  // If your fruits currently do `f.y += f.speed;`, replace with:
-  for (let i = fruits.length - 1; i >= 0; i--) {
-    const f = fruits[i];
-    // Treat existing f.speed as "units per frame" (same convention as before)
-    // Convert to pixels/sec by multiplying by FRAME_RATE_SCALE
-    f.y += f.speed * FRAME_RATE_SCALE * dt;
-
-    // existing catch/miss logic continues to work (positions are floats now)
-    if (f.y + f.h/2 >= basket.y && f.x >= basket.x - 10 && f.x <= basket.x + basket.w + 10) {
-      // caught...
-    }
-    // ...
-  }
-
-  // rest of your update logic (spawning, timer, collisions) stays the same
+function end() {
+  running = false;
+  alert("Game Over! Final Score: " + score);
 }
 
+// ================= Update =================
+function update(dt) {
+  // spawn
+  if(Date.now() - lastSpawn > spawnInterval){
+    spawnFruit(); lastSpawn = Date.now();
+    if(spawnInterval > 350) spawnInterval -= 10;
+  }
 
+  // basket movement (keyboard + touch swipe)
+  const movePerSecond = basket.speed;
+  if (leftPressed)  basket.x -= movePerSecond * dt;
+  if (rightPressed) basket.x += movePerSecond * dt;
+  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
 
-// --- Touch swipe controls ---
+  // fruits
+  for(let i = fruits.length-1; i >= 0; i--){
+    const f = fruits[i];
+    f.y += f.speed * dt;
+
+    if(f.y+f.size > basket.y && f.x < basket.x+basket.w && f.x+f.size > basket.x){
+      fruits.splice(i,1);
+      if(f.bonus){ score += 5; } else { score += 1; }
+      scoreEl.textContent = score;
+    } else if(f.y > H){
+      fruits.splice(i,1);
+      lives--; livesEl.textContent = lives;
+      if(lives <= 0) end();
+    }
+  }
+
+  // timer
+  const elapsed = Math.floor((Date.now()-startTime)/1000);
+  const remain = Math.max(0, gameDuration - elapsed);
+  timerEl.textContent = remain;
+  if(remain <= 0) end();
+}
+
+// ================= Draw =================
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  // basket
+  ctx.fillStyle = "brown";
+  ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
+
+  // fruits
+  fruits.forEach(f=>{
+    ctx.fillStyle = f.bonus ? "gold" : "red";
+    ctx.beginPath();
+    ctx.arc(f.x+f.size/2, f.y+f.size/2, f.size/2, 0, Math.PI*2);
+    ctx.fill();
+  });
+}
+
+// ================= Controls =================
+let leftPressed = false, rightPressed = false;
+
+// keyboard
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowLeft') leftPressed = true;
+  if(e.key==='ArrowRight') rightPressed = true;
+});
+document.addEventListener('keyup', e=>{
+  if(e.key==='ArrowLeft') leftPressed = false;
+  if(e.key==='ArrowRight') rightPressed = false;
+});
+
+// touch swipe
 let touchX = null;
-
 document.addEventListener('touchstart', e => {
   touchX = e.touches[0].clientX;
 });
-
 document.addEventListener('touchmove', e => {
   let currentX = e.touches[0].clientX;
   let dx = currentX - touchX;
-
-  basket.x += dx * 0.5; // adjust sensitivity here
+  basket.x += dx; // natural drag
   basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
-
   touchX = currentX;
 });
+document.addEventListener('touchend', ()=>{ touchX = null; });
 
-document.addEventListener('touchend', () => {
-  touchX = null;
-});
+// on-screen buttons
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
 
-// --- Optional: Touch buttons (only if leftBtn & rightBtn exist in HTML) ---
-let leftBtn = document.getElementById('leftBtn');
-let rightBtn = document.getElementById('rightBtn');
-
-if (leftBtn && rightBtn) {
-  leftBtn.addEventListener('touchstart', () => { basket.x -= 40; });
-  rightBtn.addEventListener('touchstart', () => { basket.x += 40; });
-  leftBtn.addEventListener('click', () => { basket.x -= 40; });
-  rightBtn.addEventListener('click', () => { basket.x += 40; });
+if(leftBtn && rightBtn){
+  leftBtn.addEventListener('touchstart', ()=>{ leftPressed = true; });
+  leftBtn.addEventListener('touchend', ()=>{ leftPressed = false; });
+  rightBtn.addEventListener('touchstart', ()=>{ rightPressed = true; });
+  rightBtn.addEventListener('touchend', ()=>{ rightPressed = false; });
+  leftBtn.addEventListener('mousedown', ()=>{ leftPressed = true; });
+  leftBtn.addEventListener('mouseup', ()=>{ leftPressed = false; });
+  rightBtn.addEventListener('mousedown', ()=>{ rightPressed = true; });
+  rightBtn.addEventListener('mouseup', ()=>{ rightPressed = false; });
 }
 
-// restart
-document.getElementById('restart').addEventListener('click', ()=>{ gameOverEl.classList.add('hidden'); start(); });
-
-// start automatically
-window.addEventListener('load', ()=> start());
+// ================= Start Game =================
+start();
