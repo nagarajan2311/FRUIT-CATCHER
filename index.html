@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fruit Catcher</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-wrap">
+    <header><h1>Fruit Catcher</h1>
+      <div class="hud">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lives: <span id="lives">5</span></div>
+        <div>Time: <span id="timer">--</span></div>
+      </div>
+    </header>
+    <main id="gameArea">
+      <img src="assets/img/bg.png" id="bg" alt="background">
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+      <div class="controls">
+        <button id="leftBtn">◀</button>
+        <button id="rightBtn">▶</button>
+      </div>
+      <div class="game-over hidden" id="gameOver">
+        <div class="card">
+          <h2>Game Over</h2>
+          <p>Your score: <span id="finalScore">0</span></p>
+          <button id="restart">Play Again</button>
+        </div>
+      </div>
+    </main>
+  </div>
+  <audio id="bgm" src="assets/audio/bg.wav" loop></audio>
+  <audio id="catchSfx" src="assets/audio/catch.wav"></audio>
+  <audio id="missSfx" src="assets/audio/miss.wav"></audio>
+  <script src="game.js"></script>
+</body>
+</html>

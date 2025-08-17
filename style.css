@@ -1,0 +1,13 @@
+
+*{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#eaf7ff;color:#20323a}
+.game-wrap{max-width:900px;margin:8px auto;padding:8px}
+header{display:flex;justify-content:space-between;align-items:center}
+.hud{display:flex;gap:12px}
+#gameArea{position:relative;width:800px;margin:12px auto}
+#bg{width:100%;display:block;border-radius:8px}
+canvas{position:absolute;left:0;top:0}
+.controls{display:flex;gap:8px;justify-content:center;margin-top:8px}
+.controls button{padding:12px 18px;border-radius:8px;border:none;background:#7fb77e;color:#fff;font-weight:700}
+.game-over{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0.35)}
+.card{background:#fff;padding:20px;border-radius:12px;text-align:center}
+.hidden{display:none}
