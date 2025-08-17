@@ -85,12 +85,20 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-// --- Keyboard controls ---
+// --- Keyboard smooth controls ---
+let leftPressed = false;
+let rightPressed = false;
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowLeft') basket.x -= basket.speed * 2;
-  if (e.key === 'ArrowRight') basket.x += basket.speed * 2;
-  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
+  if (e.key === 'ArrowLeft') leftPressed = true;
+  if (e.key === 'ArrowRight') rightPressed = true;
 });
+
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') leftPressed = false;
+  if (e.key === 'ArrowRight') rightPressed = false;
+});
+
 
 // --- Touch swipe controls ---
 let touchX = null;
