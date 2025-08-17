@@ -1,42 +1,44 @@
-
 // ================= Game Constants =================
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 const W = canvas.width;
 const H = canvas.height;
 
-const basket = { x: W/2-40, y: H-50, w: 80, h: 40, speed: 250 }; // pixels/sec
+const basket = { x: W/2-40, y: H-50, w: 80, h: 40, speed: 250 };
 let fruits = [];
 let score = 0;
 let lives = 5;
 let running = false;
 
 let lastSpawn = 0;
-let spawnInterval = 900; // ms
+let spawnInterval = 900;
 let startTime = 0;
-let gameDuration = 60; // seconds
+let gameDuration = 60;
 
 const scoreEl = document.getElementById("score");
 const livesEl = document.getElementById("lives");
 const timerEl = document.getElementById("timer");
 
-const FRAME_RATE_SCALE = 60; // normalize speeds
+const startScreen = document.getElementById("startScreen");
+const hud = document.getElementById("hud");
+const gameOverScreen = document.getElementById("gameOverScreen");
+const finalScoreEl = document.getElementById("finalScore");
+
+let last = performance.now();
 
 // ================= Fruit Spawning =================
 function spawnFruit() {
   const size = 30;
   const x = Math.random() * (W - size);
-  const speed = 100 + Math.random()*100; // px/sec
+  const speed = 100 + Math.random()*100;
   const bonus = Math.random() < 0.1;
   fruits.push({x, y: -size, size, speed, bonus});
 }
 
 // ================= Game Loop =================
-let last = performance.now();
-
 function loop(now) {
   if (!running) return;
-  const dt = (now - last) / 1000; // seconds
+  const dt = (now - last) / 1000;
   last = now;
 
   update(dt);
@@ -45,66 +47,73 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-function start() {
+function startGame() {
   score = 0; lives = 5; fruits = []; lastSpawn = 0; spawnInterval = 900;
   startTime = Date.now(); running = true;
   scoreEl.textContent = 0; livesEl.textContent = 5; timerEl.textContent = gameDuration;
 
-  last = performance.now(); // reset time
+  // UI visibility
+  startScreen.style.display = "none";
+  gameOverScreen.style.display = "none";
+  canvas.style.display = "block";
+  hud.style.display = "block";
+
+  last = performance.now();
   requestAnimationFrame(loop);
 }
 
-function end() {
+function endGame() {
   running = false;
-  alert("Game Over! Final Score: " + score);
+  canvas.style.display = "none";
+  hud.style.display = "none";
+  gameOverScreen.style.display = "block";
+  finalScoreEl.textContent = score;
+}
+
+function restartGame() {
+  startGame();
 }
 
 // ================= Update =================
 function update(dt) {
-  // spawn
   if(Date.now() - lastSpawn > spawnInterval){
     spawnFruit(); lastSpawn = Date.now();
     if(spawnInterval > 350) spawnInterval -= 10;
   }
 
-  // basket movement (keyboard + touch swipe)
   const movePerSecond = basket.speed;
   if (leftPressed)  basket.x -= movePerSecond * dt;
   if (rightPressed) basket.x += movePerSecond * dt;
   basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
 
-  // fruits
   for(let i = fruits.length-1; i >= 0; i--){
     const f = fruits[i];
     f.y += f.speed * dt;
 
     if(f.y+f.size > basket.y && f.x < basket.x+basket.w && f.x+f.size > basket.x){
       fruits.splice(i,1);
-      if(f.bonus){ score += 5; } else { score += 1; }
+      score += f.bonus ? 5 : 1;
       scoreEl.textContent = score;
     } else if(f.y > H){
       fruits.splice(i,1);
       lives--; livesEl.textContent = lives;
-      if(lives <= 0) end();
+      if(lives <= 0) endGame();
     }
   }
 
-  // timer
   const elapsed = Math.floor((Date.now()-startTime)/1000);
   const remain = Math.max(0, gameDuration - elapsed);
   timerEl.textContent = remain;
-  if(remain <= 0) end();
+  if(remain <= 0) endGame();
 }
 
 // ================= Draw =================
 function draw() {
   ctx.clearRect(0,0,W,H);
 
-  // basket
   ctx.fillStyle = "brown";
   ctx.fillRect(basket.x, basket.y, basket.w, basket.h);
 
-  // fruits
   fruits.forEach(f=>{
     ctx.fillStyle = f.bonus ? "gold" : "red";
     ctx.beginPath();
@@ -116,7 +125,6 @@ function draw() {
 // ================= Controls =================
 let leftPressed = false, rightPressed = false;
 
-// keyboard
 document.addEventListener('keydown', e=>{
   if(e.key==='ArrowLeft') leftPressed = true;
   if(e.key==='ArrowRight') rightPressed = true;
@@ -126,7 +134,7 @@ document.addEventListener('keyup', e=>{
   if(e.key==='ArrowRight') rightPressed = false;
 });
 
-// touch swipe
+// swipe
 let touchX = null;
 document.addEventListener('touchstart', e => {
   touchX = e.touches[0].clientX;
@@ -134,13 +142,13 @@ document.addEventListener('touchstart', e => {
 document.addEventListener('touchmove', e => {
   let currentX = e.touches[0].clientX;
   let dx = currentX - touchX;
-  basket.x += dx; // natural drag
+  basket.x += dx;
   basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
   touchX = currentX;
 });
 document.addEventListener('touchend', ()=>{ touchX = null; });
 
-// on-screen buttons
+// buttons
 const leftBtn = document.getElementById('leftBtn');
 const rightBtn = document.getElementById('rightBtn');
 
@@ -155,5 +163,5 @@ if(leftBtn && rightBtn){
   rightBtn.addEventListener('mouseup', ()=>{ rightPressed = false; });
 }
 
-// ================= Start Game =================
-start();
+
+
