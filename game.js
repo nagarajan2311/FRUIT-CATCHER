@@ -7,7 +7,7 @@ const timerEl = document.getElementById('timer');
 const bgm = document.getElementById('bgm'), catchSfx = document.getElementById('catchSfx'), missSfx = document.getElementById('missSfx');
 const gameOverEl = document.getElementById('gameOver'), finalScore = document.getElementById('finalScore');
 let score=0, lives=5, running=false, fruits=[], lastSpawn=0, spawnInterval=900, startTime=0, gameDuration=60;
-let basket = {x: W/2-60, y: H-340, w:140, h:80, speed:18};
+let basket = {x: W/2-60, y: H-140, w:140, h:80, speed:30};
 
 const fruitImgs = {};
 ['egg','apple','banana','orange'].forEach(n=>{ const i=new Image(); i.src='assets/img/'+n+'.png'; fruitImgs[n]=i; });
