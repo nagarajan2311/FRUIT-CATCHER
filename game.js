@@ -85,7 +85,14 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-// --- Keyboard smooth controls ---
+// ----- SMOOTH CONTROLS & FRAME-RATE-INDEPENDENT MOVEMENT -----
+// Put this after you define `const basket = { ... , speed: X }`
+
+// Keep backward compatibility: if you already set basket.speed as 'units'
+// (like 8 or 12), we'll interpret that same way but scale by a FRAME_RATE value.
+const FRAME_RATE_SCALE = 60; // kept so old basket.speed numbers still make sense
+
+// keyboard hold flags
 let leftPressed = false;
 let rightPressed = false;
 
@@ -93,11 +100,80 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') leftPressed = true;
   if (e.key === 'ArrowRight') rightPressed = true;
 });
-
 document.addEventListener('keyup', e => {
   if (e.key === 'ArrowLeft') leftPressed = false;
   if (e.key === 'ArrowRight') rightPressed = false;
 });
+
+// Optional: convert existing one-off button/touch handlers to continuous presses
+// (only if you have leftBtn/rightBtn elements)
+const leftBtn = document.getElementById('leftBtn');
+const rightBtn = document.getElementById('rightBtn');
+if (leftBtn && rightBtn) {
+  // start moving while pressed, stop when released
+  leftBtn.addEventListener('pointerdown', () => { leftPressed = true; });
+  leftBtn.addEventListener('pointerup',   () => { leftPressed = false; });
+  leftBtn.addEventListener('pointerleave',() => { leftPressed = false; });
+
+  rightBtn.addEventListener('pointerdown', () => { rightPressed = true; });
+  rightBtn.addEventListener('pointerup',   () => { rightPressed = false; });
+  rightBtn.addEventListener('pointerleave',() => { rightPressed = false; });
+}
+
+// If you have touch-drag handling, keep it but avoid it forcing immediate jumps.
+// (If you want drag-to-position behavior instead, see the comment below.)
+
+// ----- Loop & update (use dt seconds) -----
+// Replace your loop with one that passes `dt` in seconds to update()
+// Also ensure `last` is set when starting the game to avoid large dt on first frame.
+let last = performance.now();
+function loop(now) {
+  if (!running) return;
+  const dt = (now - last) / 1000; // dt in seconds
+  last = now;
+
+  update(dt);
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+// In your start() function, reset `last` right before starting the loop:
+function start() {
+  // ... your existing start logic ...
+  last = performance.now();          // <- important
+  requestAnimationFrame(loop);
+}
+
+// update() now receives dt (seconds). Modify movement here:
+function update(dt) {
+  // Smooth keyboard movement (basket.speed is the same number as before)
+  // movement-per-frame equivalent = basket.speed * FRAME_RATE_SCALE
+  const movePerSecond = basket.speed * FRAME_RATE_SCALE; // pixels/sec
+  if (leftPressed)  basket.x -= movePerSecond * dt;
+  if (rightPressed) basket.x += movePerSecond * dt;
+
+  // clamp
+  basket.x = Math.max(0, Math.min(W - basket.w, basket.x));
+
+  // --- Update fruits to be frame-rate-independent too ---
+  // If your fruits currently do `f.y += f.speed;`, replace with:
+  for (let i = fruits.length - 1; i >= 0; i--) {
+    const f = fruits[i];
+    // Treat existing f.speed as "units per frame" (same convention as before)
+    // Convert to pixels/sec by multiplying by FRAME_RATE_SCALE
+    f.y += f.speed * FRAME_RATE_SCALE * dt;
+
+    // existing catch/miss logic continues to work (positions are floats now)
+    if (f.y + f.h/2 >= basket.y && f.x >= basket.x - 10 && f.x <= basket.x + basket.w + 10) {
+      // caught...
+    }
+    // ...
+  }
+
+  // rest of your update logic (spawning, timer, collisions) stays the same
+}
+
 
 
 // --- Touch swipe controls ---
